@@ -1,0 +1,14 @@
+091230:
+  * Fixed so you cannot swap an time-item that is currently running.
+  * Added some icons on the button to get away with clutter.
+  * Aswell made the buttons go disabled for the previous item so you cannot start it by mistake, that would be a flaw by design.
+  * 
+
+091125:
+  * Possibility to swap time-items on the fly in case of delays.
+  * Hardcoded alarm notification when the time is up. This is going to be a configuration option later on.
+
+091124:
+
+  * Disable buttons when all time tasks are finished. This prevents the user from pushing a button, that will render in a crash.
+    The buttons will only be enabled if the user triggers a function to restart the whole procedure!

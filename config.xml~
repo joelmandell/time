@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configurations>
+    <config module="schema">pushups.xml</config>
+    <config module="window_title">Timer 0.23</config>
+</configurations>
