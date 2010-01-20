@@ -15,8 +15,6 @@
 #include <QStringList>
 #include <QFile>
 #include <QObject>
-#include <QTextCodec>
-#include <QProgressBar>
 #include <QComboBox>
 #include <QSignalMapper>
 #include <Phonon/MediaObject>
@@ -37,8 +35,6 @@ class QWidget;
 class QGridLayout;
 class QLabel;
 class QObject;
-class QTextCodec;
-class QProgressBar;
 class MediaObject;
 class VideoWidget;
 class AudioOutput;
@@ -79,7 +75,6 @@ class TTimer : public QMainWindow
         /*Config variables end*/
         QWidget *mainWidget;
         QComboBox *timeSchedules;
-        QProgressBar *progress;     
         QLabel *lblName;
         QLabel *lblClock;
         

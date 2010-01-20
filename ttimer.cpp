@@ -83,11 +83,7 @@ TTimer::TTimer( QWidget *parent ) : QMainWindow( parent )
     gridLayout->addItem(new QSpacerItem( 2 , 10 ), 0 , 0 );
     gridLayout->addItem(new QSpacerItem( 2 , 10 ), 0 , 1 );
     gridLayout->addItem(new QSpacerItem( 5 , 5 ), 0 , 3 );
-
-    progress = new QProgressBar();
-    progress->setVisible( false );
-    statusBar()->addPermanentWidget( progress );
-    
+   
     thread = new TTimerThread(); //The timer is in a thread.
     
     thread->start(); //Start the thread
@@ -420,10 +416,7 @@ void TTimer::startClock()
             pbMove = mainWidget->findChild<QPushButton *>( QString( "pbItemLater%1" ).arg( countSpeechItem ) );
             pbMove->setEnabled( false );
 	}
-        progress->setVisible( true );
-        progress->setValue( 0 );
-        progress->setMaximum( speechItemLength->at( countSpeechItem ).toInt()*60 );
-
+       
         thread->timer.start( 1000 );
     	
 	if( countSpeechItem==totalNrOfItems )
@@ -460,9 +453,6 @@ void TTimer::stopClock()
             pbMove = mainWidget->findChild<QPushButton *>( QString( "pbItemLater%1" ).arg( countSpeechItem ) );
             pbMove->setEnabled( false);
 	}
-	
-        progress->setVisible( false );
-        progress->setValue( 0 );
 
         QString resultSeconds;
         
@@ -507,7 +497,6 @@ void TTimer::setTime()
 	
     seconds++;
     totalSeconds++;
-    progress->setValue( totalSeconds );
 	
     if( seconds==60 )
     {
