@@ -16,7 +16,7 @@ TODO LIST:
 TTimer::TTimer( QWidget *parent ) : QMainWindow( parent )
 {
     QCoreApplication::setApplicationName( "TIMER" );
-    qDebug() << QLocale::system().name();
+
     mainWidget = new QWidget;
     setCentralWidget( mainWidget );
     
@@ -97,7 +97,7 @@ TTimer::TTimer( QWidget *parent ) : QMainWindow( parent )
     loadConfig(); //Load the application config. Parse from config.xml
     init(); //Init loads the schedule that is defined in the config file (config.xml).
     this->setMinimumSize( 500 , 350 ); //The minimum size of the window should be 400x350.
-    showMaximized(); //Launche the app maximized-
+    showMaximized(); //Launch the app maximized-
 
 }
  
@@ -166,12 +166,22 @@ void TTimer::paintEvent ( QPaintEvent * event )
 
 void TTimer::layoutResize()
 {
+  
+   /*We need this function to resize the scrollarea to fit beautiful to the rest of the application windows size.
+   There is something with the QLayout system and QScrollArea that doesnt really cowork well...or the other way 
+   (probarly) it's me that don't understand it :]. Anyway, this works good as it is now! */
+   
    QSize newsize=size(); //Copy the size of main application window widget.
+   
    newsize.setWidth(newsize.width()-lblClock->width()-10); //Store a size change 
    newsize.setHeight(newsize.height()-70); //Store a size change
+   
    if(newsize!=scrollArea->size())
    {
-       //If there is no change in the gui...we dont call this function unessesary.
+       /*If there is no change in the gui...we dont call this function unessecary.
+       If we call it, it sooner or later will render in a bug that causes the widget lblClock to not update it's value
+       according to the timer value; and that is something we don't want to, arent we?
+       */
        scrollArea->resize(newsize); //Applicate the size information from newsize to the scrollArea!.
    }
 }
@@ -270,19 +280,28 @@ void TTimer::init()
         QDomElement e = n.toElement();
         if( !e.isNull() )
         {
-            if( e.tagName() == "speech" )
+            if( e.tagName() == "speech" ) //We parse the speech tags!
             {
-                lblName=new QLabel();
-                /*Set an object name to those dynamic widgets, based on a serie of numbers - with the int variable row as datasource for it.*/
+                lblName=new QLabel(); //Our dynamic label widget.
+
+                /*Set an object name to those dynamic widgets,
+                based on a serie of numbers - with the int variable row as datasource for it.
+                The lblName object name is base on a name convention speech_time with an integer value appended to it.
+                Aswell for the speechEdit objects...speech with an integer val append. to it.
+                This is so we can have an given pattern, to query for widgets and edit there properties or values.
+                And this is also needed because the number of widgets and their respective values that is being
+                created is depending on an given XML file. IE "speeches.xml".
+                */
+
                 lblName->setObjectName( QString( "speech_time%1" ).arg( row ) ); //THe Object name pattern is speech_time with an numeric value appended at the end.
                 lblName->setTextFormat( Qt::RichText );
                 lblName->setText( QString("%1 - %2 %3").arg(e.text(),e.attribute("length"),trUtf8("min."))); //Set the text.
-                //lblName->resize(250,50);
-		/*Store the length for the different speech items!*/
+                
+                /*Store the length for the different speech items!*/
                 speechItemLength->append( e.attribute( "length" ) );
  
                 /*Store overriding time info for the speeches, this allows us to manually stop the time, and not automatically by the time limit.*/
-                allowingItemOverride->append( e.attribute( "override" ) );
+                allowingItemOverride->append( e.attribute( "override" ) ); //If the attribute override doesnt exist, nothing happens!
 
                 QLineEdit *speechEdit=new QLineEdit();
                 speechEdit->setObjectName( QString( "speech%1" ).arg( row ) );
@@ -298,23 +317,30 @@ void TTimer::init()
                 pbDown->setObjectName( QString( "pbItemLater%1" ).arg( row ) );
                 pbDown->setToolTip( QString( "pbItemLater%1" ).arg( row ) );
 
+                /*signalMapper: This is needed cause we need to have customized SIGNALS and SLOTS giving more flexibility
+                in the future to customize commands that are sended from this application and chosen host widget
+                that the signal is triggered from.*/
                 signalMapper = new QSignalMapper( this );
-
-                signalMapper->setMapping( pbUp , QString( "pbItemEarlier%1" ).arg( row ) );
-                signalMapper->setMapping( pbDown , QString( "pbItemLater%1" ).arg( row ) );
-                connect( pbUp , SIGNAL( clicked() ), signalMapper, SLOT( map() ) );
-                connect( pbDown , SIGNAL( clicked() ), signalMapper, SLOT( map() ) );
+                signalMapper->setMapping( pbUp , QString( "pbItemEarlier%1" ).arg( row ) ); //Create a mapping for pbUp.
+                signalMapper->setMapping( pbDown , QString( "pbItemLater%1" ).arg( row ) ); //Create a mapping for pbDown.
+                connect( pbUp , SIGNAL( clicked() ), signalMapper, SLOT( map() ) ); 
+                connect( pbDown , SIGNAL( clicked() ), signalMapper, SLOT( map() ) ); 
                 connect( signalMapper , SIGNAL( mapped( const QString & ) ),this, SLOT( moveIt( const QString & ) ) );
 
+                /*int row holds the first row value, and in the first row in the gridlayout the label
+                with the name of the speech item will be inserted.*/
                 gridLayout->addWidget( lblName , row , col );
                 row++;
 
+                /*int row2 holds the second row value, and in the first row in the gridlayout the lineedit
+                wich will host the information of time that has elapsed when the timing progress if finished. And adds it.*/
                 gridLayout->addWidget( speechEdit,row_2,col_2 );
-                if(row_2!=0) gridLayout->addWidget( pbUp,row_2,col_2+1 );
-                gridLayout->addWidget( pbDown,row_2,col_2+2 );
+                
+                if(row_2!=0) gridLayout->addWidget( pbUp,row_2,col_2+1 ); //If it's the first item, the possibility to move it up shouldnt exists.
+                gridLayout->addWidget( pbDown,row_2,col_2+2 ); //Add a button to move the current item down.
 
                 row_2++;
-		totalNrOfItems++;		
+                totalNrOfItems++;		
 
             }
 
@@ -322,24 +348,38 @@ void TTimer::init()
         n = n.nextSibling(); 
     }
     
+    /*HACK:Ugly hack to remove the last button in the list.
+    First step is to find it.
+    FIXME:Should be a better and nicer way to deal with this!!*/
     QPushButton *pbRem = mainWidget->findChild<QPushButton *>( QString( "pbItemLater%1" ).arg( row_2-1 ) );
 
-    pbRem->hide(); //If we dont hide the last pbItemLater button the widget will not be removed.
+    pbRem->hide(); //Then hide it! If we dont hide the last pbItemLater button the widget will not be removed.
     gridLayout->removeWidget( pbRem ); //Now we can remove it!!!
 
     btnTimeStop->setEnabled( false ); //Disable the possibility to push the stop button because the time is already stopped!
 
 }
 
+/*Function to re-prioritize items. The function argument that it takes is the widgets object name.*/
 void TTimer::moveIt(QString command)
 {
+    /*If the object name starts with pbItemLater, then we now that we are going to move the item down.*/
     if( command.startsWith( "pbItemLater" ) )
     {
-         //Okey we are going to move the item up!!
-        int id = QString( command.remove( "pbItemLater",Qt::CaseSensitive ) ).toInt();
-	QLineEdit *checklbl = mainWidget->findChild<QLineEdit *>( QString( "speech%1" ).arg( id ) );
+        /*Parse the integer that is in the object name..remove the name convention
+        (that is pbItemLater), what is left? You guess right the integer value.*/
+        int id = QString( command.remove( "pbItemLater",Qt::CaseSensitive ) ).toInt(); 
 
-        if(checklbl->text() != "") {
+        /*Then when we now the id (the id is the same for all their widgets in respect
+        speech1 speechEdit1 pbItemLater1 and so on...you see the pattern? But we only need to get the id
+        of one of those widgets, in this case pbItemLater...
+        
+        Next step below: Find the lineedit with the id.
+        */
+        QLineEdit *checkLineEdit = mainWidget->findChild<QLineEdit *>( QString( "speech%1" ).arg( id ) );
+
+        /*If the lineedit value is not empty..then that one is not customizable*/
+        if(checkLineEdit->text() != "") {
             if(thread->timer.isActive())
             {
                 statusBar()->showMessage( trUtf8( "Du kan bara flytta fram denna tid, eftersom ovanstående tid räknas." ),5000 );
@@ -349,7 +389,7 @@ void TTimer::moveIt(QString command)
 	} else {
             speechItemLength->swap( id,id+1 );
             allowingItemOverride->swap( id,id+1 );
-            qDebug() << "The id of the pbItemLater pushbutton widget:" << id;
+            //qDebug() << "The id of the pbItemLater pushbutton widget:" << id;
             QLabel *lnSource; 
             QLabel *lnTarget;    
       
@@ -367,9 +407,9 @@ void TTimer::moveIt(QString command)
     if(command.startsWith("pbItemEarlier"))
     {     
         int id = QString( command.remove( "pbItemEarlier",Qt::CaseSensitive ) ).toInt();
-	QLineEdit *checklbl = mainWidget->findChild<QLineEdit *>( QString( "speech%1" ).arg( id-1 ) );
+	QLineEdit *checkLineEdit = mainWidget->findChild<QLineEdit *>( QString( "speech%1" ).arg( id-1 ) );
 
-        if(checklbl->text() != "") {
+        if(checkLineEdit->text() != "") {
             if(thread->timer.isActive())
             {
                 statusBar()->showMessage( trUtf8( "Du kan bara flytta fram denna tid, eftersom ovanstående tid räknas." ),5000 );
@@ -396,15 +436,11 @@ void TTimer::firstRunWizard()
 
 }
 
-void TTimer::timeProperties( QString yaa )
-{
-}
-
 void TTimer::startClock()
 {
-    qDebug() << "startClock() countSpeechItem is:" << countSpeechItem;
+    /*qDebug() << "startClock() countSpeechItem is:" << countSpeechItem;
     qDebug() << "startClock() totalNrOfItems is:" << totalNrOfItems;
-    qDebug() << "startClock() time limit is:" << speechItemLength->at( countSpeechItem );
+    qDebug() << "startClock() time limit is:" << speechItemLength->at( countSpeechItem );*/
 
     if(countSpeechItem!=totalNrOfItems)
     {
@@ -443,8 +479,8 @@ void TTimer::stopClock()
     lblClock->setText( "" );
     totalSeconds=0;
     
-    qDebug() << "stopClock() countSpeechItem is:" << countSpeechItem;
-    qDebug() << "stopClock() totalNrOfItems is:" << totalNrOfItems;
+    /*qDebug() << "stopClock() countSpeechItem is:" << countSpeechItem;
+    qDebug() << "stopClock() totalNrOfItems is:" << totalNrOfItems;*/
 
     if( countSpeechItem!=totalNrOfItems )
     {
@@ -452,61 +488,63 @@ void TTimer::stopClock()
         btnTimeStop->setEnabled( false ); //Disable the possibility to push the stop button because the time is already stopped!
         /*Found the QLineEdit according to the speech control id. That is countSpeechItem that beholds the last used one.*/
         QLineEdit *speechEdit = mainWidget->findChild<QLineEdit *>( QString( "speech%1" ).arg( countSpeechItem ) );
-	
-	if( countSpeechItem==0 ) {
-	    QPushButton *pbMove = mainWidget->findChild<QPushButton *>( QString( "pbItemLater%1" ).arg( countSpeechItem ) );
+        speechEdit->setStyleSheet(btnTimeAlert->styleSheet()); //Copy the stylesheet from the button that show the status of the time...if we were over the time limit or not..
+        speechEdit->setStyleSheet(QString("%1%2").arg("color:#000;",speechEdit->styleSheet())); //The color of the text needs to be black, so it will be visible for the user.
+
+        if( countSpeechItem==0 ) {
+            QPushButton *pbMove = mainWidget->findChild<QPushButton *>( QString( "pbItemLater%1" ).arg( countSpeechItem ) );
             pbMove->setEnabled( false );
-	} else {
+        } else {
             QPushButton *pbMove = mainWidget->findChild<QPushButton *>( QString( "pbItemEarlier%1" ).arg( countSpeechItem ) );
             pbMove->setEnabled( false );
             pbMove = mainWidget->findChild<QPushButton *>( QString( "pbItemLater%1" ).arg( countSpeechItem ) );
             pbMove->setEnabled( false);
-	}
+        }
 
         QString resultSeconds;
         
-	/*If it's below 10 seconds, then there needs to be appended a zero as for design.*/
+        /*If it's below 10 seconds, then there needs to be appended a zero as for design.*/
         if( seconds<=9 ) resultSeconds.append( "0" );
 
         speechEdit->setEnabled( false ); 
-	speechEdit->setText( QString( "%1:%2%3" ).arg( minutes ).arg( resultSeconds ).arg( seconds ) );
+        speechEdit->setText( QString( "%1:%2%3" ).arg( minutes ).arg( resultSeconds ).arg( seconds ) );
 
         countSpeechItem++;
-	
-	if( countSpeechItem==totalNrOfItems )
-	{
-	    btnTimeStart->setEnabled( false ); 
-	}
-	
+ 
+        if( countSpeechItem==totalNrOfItems )
+        {
+            btnTimeStart->setEnabled( false ); 
+        }
+
     } 
     minutes=0;
     seconds=-1;
-
+    btnTimeAlert->setStyleSheet( "" ); //Reset status button to Grey color.
 }
 
 void TTimer::setTime()
 {   
 
     QLabel *speechItemName;
-	
+
     if( countSpeechItem!=totalNrOfItems )
     {
         speechItemName = mainWidget->findChild<QLabel *>( QString( "speech_time%1" ).arg( countSpeechItem ) );
     }
-	
+
     int val;
-	
+
     if( countSpeechItem!=totalNrOfItems )
     {
         val=speechItemLength->at( countSpeechItem ).toInt();
     } else {
         btnTimeStart->setEnabled( false );
-	btnTimeStop->setEnabled( false );
+        btnTimeStop->setEnabled( false );
     }
-	
+ 
     seconds++;
     totalSeconds++;
-	
+
     if( seconds==60 )
     {
         minutes++;
@@ -536,7 +574,7 @@ void TTimer::setTime()
         if( allowingItemOverride->at( countSpeechItem )!="yes" )
         {
             stopClock();
-	    playAlarm();
+            playAlarm();
         } 
     }
     

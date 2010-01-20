@@ -48,7 +48,6 @@ class TTimerThread : public QThread
   public:
     void run();
     QTimer timer;
-    QString data;
 };
 
 class TTimer : public QMainWindow
@@ -108,7 +107,6 @@ class TTimer : public QMainWindow
         void loadConfig();
         void startClock();
         void setTime();
-        void timeProperties(QString foo);
         void stopClock();
         void moveIt(QString command);
     
