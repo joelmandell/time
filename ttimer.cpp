@@ -16,7 +16,7 @@ TODO LIST:
 TTimer::TTimer( QWidget *parent ) : QMainWindow( parent )
 {
     QCoreApplication::setApplicationName( "TIMER" );
-    
+    qDebug() << QLocale::system().name();
     mainWidget = new QWidget;
     setCentralWidget( mainWidget );
     
@@ -96,9 +96,9 @@ TTimer::TTimer( QWidget *parent ) : QMainWindow( parent )
     createMenus(); //Create the menus
     loadConfig(); //Load the application config. Parse from config.xml
     init(); //Init loads the schedule that is defined in the config file (config.xml).
-    showMaximized(); //Launche the app maximized-
     this->setMinimumSize( 500 , 350 ); //The minimum size of the window should be 400x350.
-    
+    showMaximized(); //Launche the app maximized-
+
 }
  
 void TTimerThread::run()
@@ -121,16 +121,15 @@ void TTimer::configDialog()
     configLayout = new QGridLayout( configWidget ); //Layouting out.
 
     
-    configLabel = new QLabel( "Standard schema:" );
+    configLabel = new QLabel( trUtf8( "Standard schema:" ) );
     configEdit = new QLineEdit( xmlTimeSchemaFile );
-    btnSpara = new QPushButton( "Spara" );
+    btnSpara = new QPushButton( trUtf8( "Spara" ) );
     configLayout->addWidget( configLabel , 0 , 0 );
     configLayout->addWidget( configEdit , 0 , 1 );
     configLayout->addWidget( btnSpara , 2 , 0 );
 	
     configWidget->installEventFilter( this ); //Install event filter. Listen to events, For example closing the config window, minimizing it etc.
-	
-    configWidget->resize( 250 , 100 );
+    configWidget->setMinimumSize( 450 , 150 );
     configWidget->show(); //We need to give the widget a message to show up, not enought with creating it ;)
 }
 
@@ -277,7 +276,7 @@ void TTimer::init()
                 /*Set an object name to those dynamic widgets, based on a serie of numbers - with the int variable row as datasource for it.*/
                 lblName->setObjectName( QString( "speech_time%1" ).arg( row ) ); //THe Object name pattern is speech_time with an numeric value appended at the end.
                 lblName->setTextFormat( Qt::RichText );
-                lblName->setText( e.text() ); //Set the text.
+                lblName->setText( QString("%1 - %2 %3").arg(e.text(),e.attribute("length"),trUtf8("min."))); //Set the text.
                 //lblName->resize(250,50);
 		/*Store the length for the different speech items!*/
                 speechItemLength->append( e.attribute( "length" ) );
@@ -341,8 +340,13 @@ void TTimer::moveIt(QString command)
 	QLineEdit *checklbl = mainWidget->findChild<QLineEdit *>( QString( "speech%1" ).arg( id ) );
 
         if(checklbl->text() != "") {
-            statusBar()->showMessage( trUtf8( "Du kan inte flytta denna tiden, eftersom den har redan slutförts." ),5000 );
-        } else {
+            if(thread->timer.isActive())
+            {
+                statusBar()->showMessage( trUtf8( "Du kan bara flytta fram denna tid, eftersom ovanstående tid räknas." ),5000 );
+            } else {
+                statusBar()->showMessage( trUtf8( "Du kan bara flytta fram denna tid, eftersom ovanstående tid har redan slutförts." ),5000 );        
+            }
+	} else {
             speechItemLength->swap( id,id+1 );
             allowingItemOverride->swap( id,id+1 );
             qDebug() << "The id of the pbItemLater pushbutton widget:" << id;
@@ -366,7 +370,12 @@ void TTimer::moveIt(QString command)
 	QLineEdit *checklbl = mainWidget->findChild<QLineEdit *>( QString( "speech%1" ).arg( id-1 ) );
 
         if(checklbl->text() != "") {
-            statusBar()->showMessage( trUtf8( "Du kan inte flytta denna tiden, eftersom ovanstående tid har redan slutförts." ),5000 );
+            if(thread->timer.isActive())
+            {
+                statusBar()->showMessage( trUtf8( "Du kan bara flytta fram denna tid, eftersom ovanstående tid räknas." ),5000 );
+            } else {
+                statusBar()->showMessage( trUtf8( "Du kan bara flytta fram denna tid, eftersom ovanstående tid har redan slutförts." ),5000 );        
+            }
         } else {
             //Okey we are going to move the item down!!
             speechItemLength->swap( id,id-1 );
@@ -374,8 +383,8 @@ void TTimer::moveIt(QString command)
 
             QLabel *lnSource = mainWidget->findChild<QLabel *>( QString( "speech_time%1" ).arg( id-1 ) );
             QLabel *lnTarget = mainWidget->findChild<QLabel *>( QString( "speech_time%1" ).arg( id) );
+            statusBar()->showMessage( QString( "%2%1" ).arg( lnTarget->text(),trUtf8( "Tidigarelade tidtagning: " ) ) );
             QString copyOrginal = lnSource->text();
-            statusBar()->showMessage( QString( "%2%1" ).arg( copyOrginal,trUtf8( "Tidigarelade tidtagning: " ) ) );
             lnSource->setText( lnTarget->text() );
             lnTarget->setText( copyOrginal );
 	}
@@ -405,7 +414,7 @@ void TTimer::startClock()
         lblClock->setStyleSheet( "font-family:Tahoma; font-size:32px; color: #000" );
         QLineEdit *speechEdit = mainWidget->findChild<QLineEdit *>( QString( "speech%1" ).arg( countSpeechItem ) );
         speechEdit->setEnabled( true ); 
-	speechEdit->setText( trUtf8( "Räknar denna tid nu!" ) );
+	speechEdit->setText( trUtf8( "Räknar!" ) );
 
 	if( countSpeechItem==0 ) {
 	    QPushButton *pbMove = mainWidget->findChild<QPushButton *>( QString( "pbItemLater%1" ).arg( countSpeechItem ) );
@@ -531,9 +540,9 @@ void TTimer::setTime()
         } 
     }
     
-    if( seconds==0 ) lblClock->setText( QString( "%1 : 0%2" ).arg( minutes ).arg( seconds ) ); setWindowTitle( QString( trUtf8( "%3 - %1:0%2" ) ).arg( minutes ).arg( seconds ).arg( speechItemName->text() ) );
-    if( seconds>!10 ) lblClock->setText( QString( "%1 : 0%2" ).arg( minutes ).arg( seconds ) ); setWindowTitle( QString( trUtf8( "%3 - %1:0%2" ) ).arg( minutes ).arg( seconds ).arg( speechItemName->text() ) );
-    if( seconds>=10 ) lblClock->setText( QString( "%1 : %2" ).arg( minutes ).arg( seconds ) ); setWindowTitle( QString( trUtf8( "%3 - %1:%2" ) ).arg( minutes ).arg( seconds ).arg( speechItemName->text() ) );
+    if( seconds==0 ) lblClock->setText( QString( "%1:0%2" ).arg( minutes ).arg( seconds ) ); setWindowTitle( QString( trUtf8( "%3 - %1:0%2" ) ).arg( minutes ).arg( seconds ).arg( speechItemName->text() ) );
+    if( seconds>!10 ) lblClock->setText( QString( "%1:0%2" ).arg( minutes ).arg( seconds ) ); setWindowTitle( QString( trUtf8( "%3 - %1:0%2" ) ).arg( minutes ).arg( seconds ).arg( speechItemName->text() ) );
+    if( seconds>=10 ) lblClock->setText( QString( "%1:%2" ).arg( minutes ).arg( seconds ) ); setWindowTitle( QString( trUtf8( "%3 - %1:%2" ) ).arg( minutes ).arg( seconds ).arg( speechItemName->text() ) );
 
 }
 
