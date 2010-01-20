@@ -101,7 +101,7 @@ TTimer::TTimer( QWidget *parent ) : QMainWindow( parent )
     loadConfig(); //Load the application config. Parse from config.xml
     init(); //Init loads the schedule that is defined in the config file (config.xml).
     showMaximized(); //Launche the app maximized-
-    this->setMinimumSize( 400 , 350 ); //The minimum size of the window should be 400x350.
+    this->setMinimumSize( 500 , 350 ); //The minimum size of the window should be 400x350.
     
 }
  
@@ -172,9 +172,13 @@ void TTimer::paintEvent ( QPaintEvent * event )
 void TTimer::layoutResize()
 {
    QSize newsize=size(); //Copy the size of main application window widget.
-   newsize.setWidth(newsize.width()-100); //Store a size change 
+   newsize.setWidth(newsize.width()-lblClock->width()-10); //Store a size change 
    newsize.setHeight(newsize.height()-70); //Store a size change
-   scrollArea->resize(newsize); //Applicate the size information from newsize to the scrollArea!.
+   if(newsize!=scrollArea->size())
+   {
+       //If there is no change in the gui...we dont call this function unessesary.
+       scrollArea->resize(newsize); //Applicate the size information from newsize to the scrollArea!.
+   }
 }
 
 void TTimer::createMenus()
@@ -278,7 +282,7 @@ void TTimer::init()
                 lblName->setObjectName( QString( "speech_time%1" ).arg( row ) ); //THe Object name pattern is speech_time with an numeric value appended at the end.
                 lblName->setTextFormat( Qt::RichText );
                 lblName->setText( e.text() ); //Set the text.
-
+                //lblName->resize(250,50);
 		/*Store the length for the different speech items!*/
                 speechItemLength->append( e.attribute( "length" ) );
  

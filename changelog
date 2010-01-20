@@ -1,3 +1,15 @@
+100120:
+  * The layout hindered the clock to update, because of the event listening event, but it is fixed now
+    made an if statement to update the layout *only* if an change really was triggered!
+
+100113:
+  * Fixed time counting bug..before it was jumping to 1:01 after 0:59....but not anymore :)
+  * Fixed layouting problem with the scrollbar area!
+  * Made the time tracking process threaded!
+
+100102:
+  * Fixed scrollbar for the time items....so you can have alot of them now if you want to :]
+
 091230:
   * Fixed so you cannot swap an time-item that is currently running.
   * Added some icons on the button to get away with clutter.
